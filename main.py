@@ -1,7 +1,7 @@
 # This file was created by: Chris Cozort
 # Sources: http://kidscancode.org/blog/2016/08/pygame_1-1_getting-started/
+# Sources: https://techwithtim.net/tutorials/game-development-with-python/pygame-tutorial/pygame-collision/
 # Sources: 
-
 '''
 Lore for last week:
 Functions, methods, Classes, scope('global' vs local)
@@ -20,22 +20,29 @@ GitHub, Modularity, import as
 import pygame
 import random
 import os
-from settings import *
+# from settings import *
 from pygame.sprite import Sprite
-# # global variables
-# RUNNING = True
-# # screen dims
-# WIDTH = 800
-# HEIGHT = 600
-# # frames per second
-# FPS = 30
-# # colors
-# WHITE = (255, 255, 255)
-# BLACK = (0,0,0)
-# REDDISH = (240,64,64)
-# GREEN = (64,230,64)
-# GRAVITY = 9.8
 
+TITLE = "Jump and score"
+WIDTH = 480
+HEIGHT = 600
+FPS = 60
+RUNNING = True
+# Environment options
+GRAVITY = 9.8
+
+# Player properties
+PLAYER_ACC = 0.5
+PLAYER_FRICTION = -0.01
+PLAYER_JUMPPOWER = 10
+
+# define colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
 # set up assets folders
 game_folder = os.path.dirname(__file__)
 img_folder = os.path.join(game_folder, "img")
@@ -64,28 +71,32 @@ class Player(Sprite):
         # self.screen_rect = screen.get_rect()
         self.vx = 0
         self.vy = 0
-        self.cofric = 0.1
+        self.cofric = .2
         self.canjump = False
+        #Making player movement stop when hits platform
+        self.blocked = False
     # stuff it can do....
     def friction(self):
         # print("friction...")
         # if self.vx > -0.5 or self.vx < 0.5:
         #     print("velocity is in range...")
         #     self.vx = 0
-        if self.vx > 0.5:
+        #Velocity cannot be higher than .5 or slower than -.5
+        if self.vx > .5:
             self.vx -= self.cofric
-        elif self.vx < -0.5:
+        elif self.vx < -.5:
             self.vx += self.cofric
         else:
             self.vx = 0
-        if self.vy > 0.5:
+        if self.vy > 1:
             self.vy -= self.cofric
-        elif self.vy < -0.5:
+        elif self.vy < -1:
             self.vy += self.cofric
         else:
             self.vy = 0
     def gravity(self, value):
-        self.vy += value
+        if self.blocked == False:
+            self.vy += value
     def update(self):
         # print(self.vx)
         self.friction()
@@ -101,35 +112,68 @@ class Player(Sprite):
         # if self.rect.top < 100:
         #     self.vy = 5
         keystate = pygame.key.get_pressed()
+        #W key slows the sprite's vertical speed down by 10
         if keystate[pygame.K_w]:
             self.vy -= 10
+        #A key decreses horozintal speed by 10
         if keystate[pygame.K_a]:
-            self.vx -= 10
+            self.vx -= 6
+            #makes it so when you leave the platform gravity starts working again
+            player.blocked = False
+        #The S Key imcreases the vertical velocity by 10
         if keystate[pygame.K_s]:
             self.vy += 10
+        #The D key speeds up the horozintal velocity by 10
         if keystate[pygame.K_d]:
-            self.vx += 10
+            self.vx += 6
+            #makes it so when you leave the platform gravity starts working again
+            player.blocked = False
+        #Space causes the sprite to jump
         if keystate[pygame.K_SPACE]:
             self.jump()
+            player.blocked = False
+        #Allows you to toggle settings during the game such as friction and gravity with 1,2,3,4 keys
+        # if keystate[pygame.K_1]:
+        #     self.cofric += .02
+        # if keystate[pygame.K_2]:
+        #     self.cofric -= .02
+        # if keystate[pygame.K_3]:
+        #     GRAVITY += .5
+        # if keystate[pygame.K_4]:
+        #     GRAVITY -= .5 
+        
+        #These next four if statements set boundries for the rectange the box is in
         if self.rect.right > WIDTH:
             self.rect.right = WIDTH
-            # print("touched the right side...")
+
         if self.rect.left < 0:
             self.rect.left = 0
-            # print("touched the left side...")
+            
         if self.rect.bottom > HEIGHT:
             self.rect.bottom = HEIGHT
             self.canjump = True
-            # print("touched the bottom")
+            
         if self.rect.top < 0:
             self.rect.top = 0
-            # print("touched the top")
+            
     def jump(self):
+        #this says if you are currently jumping, then you cant jump again until you are at the bottom of the screen
         if self.canjump == True:
             self.canjump = False
+    
+            #Decreases the y velocity to pull the cube back down
             self.vy -= 50
             print(self.vy)
-
+#Creating the platform class
+class Platform(Sprite):
+   def __init__(self):
+        Sprite.__init__(self)
+        self.image = pygame.Surface((200,20))
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect()
+        self.rect.center = (0, HEIGHT-200) 
+       #Makes the object hitbox the size of the shape so when sprites collide the edges detect the collision not the center
+        self.hitbox = (self.rect.x  , self.rect.y)
 
 class Enemy(Sprite):
     # sprite for player
@@ -148,7 +192,7 @@ class Enemy(Sprite):
         self.vx = 5
         self.vy = 5
         self.cofric = 0.5
-    # stuff it can do....
+    # stuff it can do.
     def update(self):
         self.rect.x += self.vx
         self.rect.y += self.vy
@@ -176,15 +220,12 @@ clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 player = Player()
-# testSprite = Sprite()
-# testSprite.image = pygame.Surface((50,50))
-# testSprite.image.fill(GREEN)
-# testSprite.rect = testSprite.image.get_rect()
-# testSprite.rect.center = (WIDTH / 2, HEIGHT / 2)
+platform = Platform()
 all_sprites.add(player)
+all_sprites.add(platform)
 # all_sprites.add(testSprite)
 
-for i in range(0,100):
+for i in range(0,1):
     print(i)
     i = Enemy()
     i.rect[0] = random.randint(0,WIDTH-25)
@@ -211,152 +252,25 @@ while RUNNING:
     blocks_hit_list = pygame.sprite.spritecollide(player, enemies, True)
     for block in blocks_hit_list:
         print(enemies)
+    #Creating collosion for the cube and the new platform
+    if pygame.sprite.collide_rect(platform, player) and player.blocked == False:
+        if player.vy < 0:
+            player.vy = -player.vy
+        else:
+            player.vx = 0
+            player.vy = 0
+            player.blocked = True
+            #allows you to jump when not on the bottom
+            player.canjump = True
+            #if you set them equal they are alwys in collison making jump not work, making them 1 pixel apart they are no longer in collision
+            player.rect.bottom = platform.rect.top -1
+    
+
     ### draw and render section of game loop
-    screen.fill(REDDISH)
+    screen.fill(RED)
     all_sprites.draw(screen)
     # double buffering draws frames for entire screen
     pygame.display.flip()
     # pygame.display.update() -> only updates a portion of the screen
 # ends program when loops evaluates to false
 pygame.quit()
-# Im trying to build a game based off of this where you drop things into moving baskets for points
-# # import sys
-# import pygame
-
-# pygame.init()
-
-# screen_width = 640
-# screen_height = 480
-# screen = pygame.display.set_mode((screen_width, screen_height))
-# screen_rect = screen.get_rect()
-
-# clock = pygame.time.Clock()
-
-# fps = 60
-
-
-# class Character(object):
-#     def __init__(self, surface, velo, accel, gravity, friction):
-#         self.surface = surface
-#         self.velo = velo
-#         self.accel = accel
-#         self.gravity = gravity
-#         self.friction = friction
-#         self.timestep = 1/fps
-#         self.vel = (0, 0)
-#         self.pos = ((screen_width / 2), (screen_height / 2))
-#         self.size = (20, 20)
-        
-
-#     def velocity_right(self):
-#         self.pos = (self.pos[0] + self.velo, self.pos[1])
-
-#     def velocity_left(self):
-#         self.pos = (self.pos[0] - self.velo, self.pos[1])
-
-#     def velocity_up(self):
-        
-#         self.pos = (self.pos[0], self.pos[1] - self.velo)
-
-#     def velocity_down(self):
-#         self.pos = (self.pos[0], self.pos[1] + self.velo)
-
-#     def velocity(self):
-#         keys = pygame.key.get_pressed()
-#         if keys[pygame.K_i]:
-#             self.velocity_up()
-#         if keys[pygame.K_j]:
-#             self.velocity_left()
-#         if keys[pygame.K_k]:
-#             self.velocity_down()
-#         if keys[pygame.K_l]:
-#             self.velocity_right()
-
-#     def accelerate_right(self):
-#         self.vel = (self.vel[0] + self.accel, self.vel[1])
-#         self.pos = (self.pos[0] + self.vel[0], self.pos[1])
-
-#     def accelerate_left(self):
-#         self.vel = (self.vel[0] - self.accel, self.vel[1])
-#         self.pos = (self.pos[0] + self.vel[0], self.pos[1])
-
-#     def accelerate_up(self):
-#         self.vel = (self.vel[0], self.vel[1] - self.accel)
-#         self.pos = (self.pos[0], self.pos[1] + self.vel[1])
-
-#     def accelerate_down(self):
-#         self.vel = (self.vel[0], self.vel[1] + self.accel)
-#         self.pos = (self.pos[0], self.pos[1] + self.vel[1])
-#     def accelerate(self):
-#         keys = pygame.key.get_pressed()
-#         if keys[pygame.K_w]:
-#             self.accelerate_up()
-#         if keys[pygame.K_a]:
-#             self.accelerate_left()
-#         if keys[pygame.K_s]:
-#             self.accelerate_down()
-#         if keys[pygame.K_d]:
-#             self.accelerate_right()
-
-#         if self.pos[0] <= 0 or self.pos[0] >= screen_width:
-#             self.vel = (self.vel[0] * -1, self.vel[1])
-
-#         if self.pos[1] <= 0 or self.pos[1] >= screen_height:
-#             self.vel = (self.vel[0], self.vel[1] * -1)
-
-#         self.character = pygame.Rect((self.pos[0], self.pos[1]), self.size)
-#         self.character.clamp_ip(screen_rect)
-
-#     def display(self):
-#         pygame.draw.rect(self.surface, (255, 255, 255), self.character)
-
-#     def reset(self):
-#         (x_pos, y_pos) = pygame.mouse.get_pos()
-#         self.pos = (x_pos, self.pos[1])
-#         self.pos = (self.pos[0], y_pos)
-#         self.vel = (0, 0)
-#     def apply_gravity(self):
-#         self.vel = (self.vel[0], self.vel[1] + self.accel)
-#         self.pos = (self.pos[0], self.pos[1] + self.vel[1])
-#         # self.vel = (self.vel[0], self.vel[1] + self.gravity * self.timestep)
-#         # self.pos = (self.pos[0], self.pos[1] + self.vel[1] * self.timestep + 0.5 * self.gravity * self.timestep**2)
-
-#     def apply_friction(self):
-#         keys = pygame.key.get_pressed()
-#         if keys[pygame.K_w] or keys[pygame.K_i]:
-#             self.vel = (self.vel[0], self.vel[1] + self.friction)
-#             self.pos = (self.pos[0], self.pos[1] + self.vel[1])
-#         if keys[pygame.K_a] or keys[pygame.K_j]:
-#             self.vel = (self.vel[0] + self.friction, self.vel[1])
-#             self.pos = (self.pos[0] + self.vel[0], self.pos[1])
-#         if keys[pygame.K_s] or keys[pygame.K_k]:
-#             self.vel = (self.vel[0], self.vel[1] - self.friction)
-#             self.pos = (self.pos[0], self.pos[1] + self.vel[1])
-#         if keys[pygame.K_d] or keys[pygame.K_l]:
-#             self.vel = (self.vel[0] - self.friction, self.vel[1])
-#             self.pos = (self.pos[0] + self.vel[0], self.pos[1])
-# def main():
-#     player1 = Character(screen, 10, 1, .5, .4)
-#     while True:
-#         for event in pygame.event.get():
-#                 if event.type == pygame.QUIT:
-#                     pygame.quit()
-#                     sys.exit()
-#                 elif event.type == pygame.MOUSEBUTTONDOWN:
-#                     player1.reset()
-
-#         player1.apply_gravity()
-#         player1.apply_friction()
-
-#         player1.velocity()
-#         player1.accelerate()
-
-#         screen.fill((0, 0, 0))
-
-#         player1.display()
-
-#         pygame.display.update(screen_rect)
-#         clock.tick(fps)
-
-# if __name__ == "__main__":
-#     main()
