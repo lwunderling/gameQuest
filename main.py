@@ -1,7 +1,8 @@
 # This file was created by: Chris Cozort
 # Sources: http://kidscancode.org/blog/2016/08/pygame_1-1_getting-started/
 # Sources: https://techwithtim.net/tutorials/game-development-with-python/pygame-tutorial/pygame-collision/
-# Sources: 
+# Sources: https://www.geeksforgeeks.org/python-display-text-to-pygame-window/
+
 '''
 Lore for last week:
 Functions, methods, Classes, scope('global' vs local)
@@ -42,11 +43,13 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+PURPLE = (255, 0, 247)
+ORANGE = (255, 187, 0)
 YELLOW = (255, 255, 0)
+score = 0
 # set up assets folders
 game_folder = os.path.dirname(__file__)
 img_folder = os.path.join(game_folder, "img")
-
 
 
 def get_mouse_now():
@@ -168,11 +171,20 @@ class Player(Sprite):
 class Platform(Sprite):
    def __init__(self):
         Sprite.__init__(self)
-        self.image = pygame.Surface((200,20))
+        self.image = pygame.Surface((100,20))
         self.image.fill(GREEN)
         self.rect = self.image.get_rect()
-        self.rect.center = (0, HEIGHT-200) 
+        self.rect.center = (50, HEIGHT-200) 
        #Makes the object hitbox the size of the shape so when sprites collide the edges detect the collision not the center
+        self.hitbox = (self.rect.x  , self.rect.y)
+
+class Hoop(Sprite):
+   def __init__(self):
+        Sprite.__init__(self)
+        self.image = pygame.Surface((200,15))
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect()
+        self.rect.center = (WIDTH-100,150) 
         self.hitbox = (self.rect.x  , self.rect.y)
 
 class Enemy(Sprite):
@@ -217,12 +229,28 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("My first game...")
 clock = pygame.time.Clock() 
 
+pygame.display.set_caption('Basket Shooter')   
+# Choice in font and font size
+font = pygame.font.Font('freesansbold.ttf', 32)   
+# Choice in what text I want initally displayed 
+text = font.render('0', True, ORANGE, PURPLE) 
+#Creates the shape of the text box
+textRect = text.get_rect()  
+# set the center of the rectangular object. 
+textRect.center = (200,200) 
+
+# "when player scores change score +1"
+# text = font.render('0', True, green, blue) 
+screen.blit(text, textRect) 
+
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 player = Player()
+hoop = Hoop()
 platform = Platform()
 all_sprites.add(player)
 all_sprites.add(platform)
+all_sprites.add(hoop)
 # all_sprites.add(testSprite)
 
 for i in range(0,1):
@@ -265,12 +293,23 @@ while RUNNING:
             #if you set them equal they are alwys in collison making jump not work, making them 1 pixel apart they are no longer in collision
             player.rect.bottom = platform.rect.top -1
     
+    if pygame.sprite.collide_rect(hoop, player) and player.blocked == False:
+        if player.vy < 0:
+            player.vy = -player.vy
+        else:
+            # player.vx = 0
+            # player.vy = 0
+            # #allows you to jump when not on the bottom
+            # player.canjump = True
+            #if you set them equal they are alwys in collison making jump not work, making them 1 pixel apart they are no longer in collision
+            player.rect.bottom = platform.rect.top -1
 
     ### draw and render section of game loop
     screen.fill(RED)
     all_sprites.draw(screen)
     # double buffering draws frames for entire screen
     pygame.display.flip()
-    # pygame.display.update() -> only updates a portion of the screen
+    pygame.display.update() 
+    # -> only updates a portion of the screen
 # ends program when loops evaluates to false
 pygame.quit()
