@@ -2,7 +2,9 @@
 # Sources: http://kidscancode.org/blog/2016/08/pygame_1-1_getting-started/
 # Sources: https://techwithtim.net/tutorials/game-development-with-python/pygame-tutorial/pygame-collision/
 # Sources: https://www.geeksforgeeks.org/python-display-text-to-pygame-window/
-
+# Sources: https://www.pixilart.com/draw
+# sources: https://www.geeksforgeeks.org/python-display-images-with-pygame/
+# Sources: https://www.geeksforgeeks.org/python-display-text-to-pygame-window/
 '''
 Lore for last week:
 Functions, methods, Classes, scope('global' vs local)
@@ -21,6 +23,7 @@ GitHub, Modularity, import as
 import pygame
 import random
 import os
+import time
 # from settings import *
 from pygame.sprite import Sprite
 
@@ -63,14 +66,16 @@ class Player(Sprite):
     # properties of the class
     def __init__(self):
         Sprite.__init__(self)
-        self.image = pygame.Surface((50,50))
-        self.image.fill(BLACK)
+        # self.image = pygame.image.load(r"basketball.png")
+        # self.image.fill(BLACK)
         '''sets image path to correct location joining image folder to file name then converting to a more efficient format'''
-        # self.image = pygame.image.load(os.path.join(img_folder, "Tie.png")).convert()
+        self.image = pygame.image.load(os.path.join(img_folder, "basketball2.png")).convert()
+        #scaling the sprite image
+        self.image = pygame.transform.scale(self.image, (40, 40))
         '''sets transparent color key to black'''
         # self.image.set_colorkey(BLACK)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH / 2, HEIGHT / 2)
+        self.rect.center = (25, HEIGHT - 25)
         # self.screen_rect = screen.get_rect()
         self.vx = 0
         self.vy = 0
@@ -181,10 +186,11 @@ class Platform(Sprite):
 class Hoop(Sprite):
    def __init__(self):
         Sprite.__init__(self)
-        self.image = pygame.Surface((200,15))
-        self.image.fill(GREEN)
+        self.image = pygame.image.load(os.path.join(img_folder, "hoop2.png")).convert()
+        # self.image = pygame.Surface((200,15))
+        # self.image.fill(GREEN)
         self.rect = self.image.get_rect()
-        self.rect.center = (WIDTH-100,150) 
+        self.rect.center = (WIDTH-15,150) 
         self.hitbox = (self.rect.x  , self.rect.y)
 
 class Enemy(Sprite):
@@ -226,7 +232,7 @@ pygame.init()
 # init sound mixer
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("My first game...")
+# pygame.display.set_caption("My first game...")
 clock = pygame.time.Clock() 
 
 pygame.display.set_caption('Basket Shooter')   
@@ -237,12 +243,12 @@ text = font.render('0', True, ORANGE, PURPLE)
 #Creates the shape of the text box
 textRect = text.get_rect()  
 # set the center of the rectangular object. 
-textRect.center = (200,200) 
+textRect.center = (50,50) 
 
 # "when player scores change score +1"
 # text = font.render('0', True, green, blue) 
 screen.blit(text, textRect) 
-
+pygame.display.update()
 all_sprites = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 player = Player()
@@ -276,7 +282,6 @@ while RUNNING:
     # print(get_mouse_now())
     ### update section of game loop (if updates take longer the 1/30th of a second, you will get laaaaag...)
     all_sprites.update()
-
     blocks_hit_list = pygame.sprite.spritecollide(player, enemies, True)
     for block in blocks_hit_list:
         print(enemies)
@@ -297,6 +302,12 @@ while RUNNING:
         if player.vy < 0:
             player.vy = -player.vy
         else:
+            score = score +1
+            screen.fill(RED)
+            pygame.display.update() 
+            time.sleep(.3)
+            screen.fill(WHITE)
+            pygame.display.update() 
             # player.vx = 0
             # player.vy = 0
             # #allows you to jump when not on the bottom
@@ -305,7 +316,9 @@ while RUNNING:
             player.rect.bottom = platform.rect.top -1
 
     ### draw and render section of game loop
-    screen.fill(RED)
+    screen.fill(WHITE)
+    text = font.render(str(score), True, ORANGE, PURPLE) 
+    screen.blit(text, textRect) 
     all_sprites.draw(screen)
     # double buffering draws frames for entire screen
     pygame.display.flip()
